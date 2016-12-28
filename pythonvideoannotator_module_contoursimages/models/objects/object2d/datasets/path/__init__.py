@@ -1,0 +1,1 @@
+from pythonvideoannotator_module_contoursimages.models.objects.object2d.datasets.path.contoursimages_path import ControursImagesPath as Path
