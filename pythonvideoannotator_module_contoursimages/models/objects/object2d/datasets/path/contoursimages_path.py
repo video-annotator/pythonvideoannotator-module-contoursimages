@@ -21,54 +21,32 @@ class ControursImagesPath(object):
 
 
 
-	
 
+	def create_contoursimages_tree_nodes(self):
 
-
-	def create_contoursimages_tree_nodes(self):		
-		self.treenode_avgcolor = self.tree.create_child('Color average', icon=conf.ANNOTATOR_ICON_COLORS, parent=self.treenode_countour )
-		self.treenode_avgcolor.win = self
-
+		self.create_group_node('contour > color average', icon=conf.ANNOTATOR_ICON_COLORS)
 		
-		self.treenode_avgred = self.tree.create_child('Red', icon=conf.ANNOTATOR_ICON_COLOR_COMPONENT, parent=self.treenode_avgcolor )
-		self.treenode_avgred.win = self
-		self.tree.add_popup_menu_option(label='View on the timeline', 
-			function_action=self.__send_red_avg_to_timeline_event, item=self.treenode_avgred, 
-			icon=conf.ANNOTATOR_ICON_TIMELINE)
+		self.create_data_node('contour > color average > red', 	icon=conf.ANNOTATOR_ICON_COLOR_COMPONENT)
+		self.create_data_node('contour > color average > green',icon=conf.ANNOTATOR_ICON_COLOR_COMPONENT)
+		self.create_data_node('contour > color average > blue', icon=conf.ANNOTATOR_ICON_COLOR_COMPONENT)
 		
-		self.treenode_avggreen = self.tree.create_child('Green', icon=conf.ANNOTATOR_ICON_COLOR_COMPONENT, parent=self.treenode_avgcolor )
-		self.treenode_avggreen.win = self
-		self.tree.add_popup_menu_option(label='View on the timeline', 
-			function_action=self.__send_green_avg_to_timeline_event, item=self.treenode_avggreen, 
-			icon=conf.ANNOTATOR_ICON_TIMELINE)
-		
-		self.treenode_avgblue = self.tree.create_child('Blue', icon=conf.ANNOTATOR_ICON_COLOR_COMPONENT, parent=self.treenode_avgcolor )
-		self.treenode_avgblue.win = self
-		self.tree.add_popup_menu_option(label='View on the timeline', 
-			function_action=self.__send_blue_avg_to_timeline_event, item=self.treenode_avgblue, 
-			icon=conf.ANNOTATOR_ICON_TIMELINE)
-
-		self.treenode_avgcolor.win = self.treenode_avgred.win = \
-		self.treenode_avggreen.win = self.treenode_avgblue.win = self
-
-
 	######################################################################
 	### FUNCTIONS ########################################################
 	######################################################################
 
 	################# CONTOUR #########################################################
+
+	def get_contour_coloraverage_red_value(self, index):
+		color = self.get_color_avg(index)
+		return None if color is None else color[0]
 		
-	def __send_red_avg_to_timeline_event(self):
-		data = [(i,self.get_redcolor_avg(i)) for i in range(len(self)) if self.get_redcolor_avg(i) is not None]
-		self.mainwindow.add_graph('{0} red color average'.format(self.name), data)
+	def get_contour_coloraverage_green_value(self, index):
+		color = self.get_color_avg(index)
+		return None if color is None else color[1]
 
-	def __send_green_avg_to_timeline_event(self):
-		data = [(i,self.get_greencolor_avg(i)) for i in range(len(self)) if self.get_greencolor_avg(i) is not None]
-		self.mainwindow.add_graph('{0} green color average'.format(self.name), data)
-
-	def __send_blue_avg_to_timeline_event(self):
-		data = [(i,self.get_bluecolor_avg(i)) for i in range(len(self)) if self.get_bluecolor_avg(i) is not None]
-		self.mainwindow.add_graph('{0} blue color average'.format(self.name), data)
+	def get_contour_coloraverage_blue_value(self, index):
+		color = self.get_color_avg(index)
+		return None if color is None else color[2]
 
 
 	######################################################################
@@ -80,61 +58,12 @@ class ControursImagesPath(object):
 		return self._avg_colors[index] if self._avg_colors[index] is not None else None
 
 	def set_color_avg(self, index, color):
-		if not hasattr(self, 'treenode_avgcolor'): self.create_contoursimages_tree_nodes()
+		if not hasattr(self, 'treenode_contour_coloraverage'): self.create_contoursimages_tree_nodes()
 		# add colors in case they do not exists
 		if index >= len(self._avg_colors):
 			for i in range(len(self._avg_colors), index + 1): self._avg_colors.append(None)
 		self._avg_colors[index] = color
 
-	def set_redcolor_avg(self, index, red):
-		color = self.get_color_avg(index)
-		if color is None: 
-			color = red, None, None
-		else:
-			color = red, color[1], color[2]
-		self.set_color_avg(index, color)
-
-
-
-	def get_redcolor_avg(self, index):
-		color = self.get_color_avg(index)
-		return None if color is None else color[0]
-
-	def set_redcolor_avg(self, index, red):
-		color = self.get_color_avg(index)
-		if color is None: 
-			color = red, None, None
-		else:
-			color = red, color[1], color[2]
-		self.set_color_avg(index, color)
-
-
-
-	def get_greencolor_avg(self, index):
-		color = self.get_color_avg(index)
-		return None if color is None else color[0]
-
-	def set_greencolor_avg(self, index, green):
-		color = self.get_color_avg(index)
-		if color is None: 
-			color = None, green, None
-		else:
-			color = color[0], green, color[2]
-		self.set_color_avg(index, color)
-
-
-
-	def get_bluecolor_avg(self, index):
-		color = self.get_color_avg(index)
-		return None if color is None else color[0]
-
-	def set_bluecolor_avg(self, index, blue):
-		color = self.get_color_avg(index)
-		if color is None: 
-			color = None, None, blue
-		else:
-			color = color[0], color[1], blue
-		self.set_color_avg(index, color)
 	
 
 
@@ -159,7 +88,7 @@ class ControursImagesPath(object):
 		return data
 
 	def load(self, data, dataset_path=None):
-		super(ControursImagesPath, self).load(data, dataset_path)		
+		super(ControursImagesPath, self).load(data, dataset_path)
 		colors_file = os.path.join(dataset_path, 'colors-average.csv')
 		
 		if os.path.exists(colors_file):

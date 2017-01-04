@@ -215,7 +215,7 @@ class ContoursImagesWindow(BaseWidget):
 			count = 0
 			for video, (begin, end), paths in self.paths_dialog.selected_data:
 				if len(paths)==0: continue
-				begin, end = int(begin), int(end)
+				begin, end = int(begin), int(end)+1
 				capture.set(cv2.CAP_PROP_POS_FRAMES, begin); 
 				
 				blobs_paths = None
