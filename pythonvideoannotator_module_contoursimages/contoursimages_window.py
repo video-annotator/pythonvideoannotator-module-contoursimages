@@ -12,7 +12,9 @@ from pyforms.Controls import ControlCheckBoxList
 from pyforms.Controls import ControlEmptyWidget
 from pyforms.Controls import ControlProgress
 
-from pythonvideoannotator_models_gui.dialogs.paths_and_intervals_selector import PathsAndIntervalsSelectorDialog
+from pythonvideoannotator_models_gui.dialogs import DatasetsDialog
+from pythonvideoannotator_models_gui.models.video.objects.object2d.datasets.contours import Contours
+from pythonvideoannotator_models_gui.models.video.objects.object2d.datasets.path import Path
 
 import json
 
@@ -90,55 +92,62 @@ class ContoursImagesWindow(BaseWidget):
 		self.setMinimumHeight(400)
 		self.setMinimumWidth(800)
 
-		self._paths_panel	= ControlEmptyWidget('Paths')
+		self._datasets_panel	= ControlEmptyWidget('Paths')
 		self._progress  	= ControlProgress('Progress')		
 		self._apply 		= ControlButton('Apply', checkable=True)
 
 		self._exportimgs    = ControlCheckBox('Export the images')
 		self._exportmargin  = ControlSlider('Cutting margin', 0, 0, 300)
-		self._mask_images   = ControlCheckBox('Use the controur as a mask')
+		self._mask_images   = ControlCheckBox('Use the contour as a mask')
 		self._mask_margin   = ControlSlider('Mark margin', 0, 0, 100)
 
-		self._exportpath    = ControlDir('Export contours to path')
+		self._maskradius	= ControlCheckBox('Use a circular mask')
+		self._radius 		= ControlSlider('Mask radius', 1, 1, 300)
+
+		self._exportdataset    = ControlDir('Export contours to dataset')
 		self._rotateimgs    = ControlCheckBox('Rotate the images vertically')
 
 		
 		self._formset = [
 			'info: This module add to the contour properties extrated from its image',
-			'_paths_panel',
+			'_datasets_panel',
 			'=',
 			' ',
 			'Export the contours images',
 			'_exportimgs',
-			'_exportpath',
+			'_exportdataset',
 			'_exportmargin', 
 			('_mask_images','_mask_margin'),
-			'_rotateimgs', 
+			'_rotateimgs',
+			('_maskradius','_radius'),
 			' ',
 			'_apply',
 			'_progress'
 		]
 
-		self.load_order = ['_paths_panel']
+		self.load_order = ['_datasets_panel']
 
-		self.paths_dialog 		= PathsAndIntervalsSelectorDialog(self)
-		self._paths_panel.value = self.paths_dialog
+		self.datasets_dialog 		= DatasetsDialog(self)
+		self._datasets_panel.value = self.datasets_dialog
+		self.datasets_dialog.datasets_filter = lambda x: isinstance(x, (Contours,Path) )
 
 		self._apply.value		= self.__apply_event
 		self._apply.icon 		= conf.ANNOTATOR_ICON_PATH
 
-		self._exportimgs.changed_event = self.__exportimgs_changed_evt
-		self._exportimgs.value = False
+		self._exportimgs.changed_event 	= self.__exportimgs_changed_evt
+		self._exportimgs.value 			= False
 		self._mask_images.changed_event = self.__mask_images_changed_evt
-		self._mask_images.value	= False
+		self._mask_images.value			= False
+		self._maskradius.changed_event  = self.__maskradius_changed_evt
+		self._maskradius.value 			= False
 
-		self._exportpath.value = os.getcwd()
+		self._exportdataset.value = os.getcwd()
 
 		self._progress.hide()
 
 	def init_form(self):
 		super(ContoursImagesWindow, self). init_form()
-		self.paths_dialog.project = self.mainwindow.project
+		self.datasets_dialog.project = self.mainwindow.project
 
 	###########################################################################
 	### EVENTS ################################################################
@@ -149,12 +158,12 @@ class ContoursImagesWindow(BaseWidget):
 		if self._exportimgs.value:
 			self._exportmargin.enabled  = True
 			self._mask_images.enabled   = True
-			self._exportpath.enabled    = True
+			self._exportdataset.enabled    = True
 			self._rotateimgs.enabled   	= True
 		else:
 			self._exportmargin.enabled  = False
 			self._mask_images.enabled   = False
-			self._exportpath.enabled    = False
+			self._exportdataset.enabled    = False
 			self._rotateimgs.enabled   	= False
 
 
@@ -164,12 +173,18 @@ class ContoursImagesWindow(BaseWidget):
 		else:
 			self._mask_margin.enabled	= False
 
+	def __maskradius_changed_evt(self):
+		if self._maskradius.value:
+			self._radius.enabled 	= True
+		else:
+			self._radius.enabled	= False
+
 	###########################################################################
 	### PROPERTIES ############################################################
 	###########################################################################
 
 	@property
-	def paths(self): return self.paths_dialog.paths
+	def datasets(self): return self.datasets_dialog.datasets
 	
 
 	@property
@@ -180,18 +195,18 @@ class ContoursImagesWindow(BaseWidget):
 		if self._apply.checked:
 			dilate_mask = self._mask_margin.enabled and self._mask_margin.value>0
 
-			self._paths_panel.enabled 	= False			
+			self._datasets_panel.enabled 	= False			
 			self._exportimgs.enabled    = False
 			self._exportmargin.enabled  = False
 			self._mask_images.enabled   = False
-			self._exportpath.enabled    = False
+			self._exportdataset.enabled    = False
 			self._rotateimgs.enabled   	= False
 			self._mask_margin.enabled	= False
 			self._mask_margin.enabled   = False
 			self._apply.label 			= 'Cancel'
 
 			total_2_analyse  = 0
-			for video, (begin, end), paths in self.paths_dialog.selected_data:
+			for video, (begin, end), datasets in self.datasets_dialog.selected_data:
 				capture 		 = video.video_capture
 				total_2_analyse += end-begin
 
@@ -200,10 +215,10 @@ class ContoursImagesWindow(BaseWidget):
 			self._progress.show()
 
 			if self._exportimgs.value:
-				export_path = os.path.join(self._exportpath.value, 'contours-images')
-				if not os.path.exists(export_path): os.makedirs(export_path)
+				export_dataset = os.path.join(self._exportdataset.value, 'contours-images')
+				if not os.path.exists(export_dataset): os.makedirs(export_dataset)
 			else:
-				export_path = None
+				export_dataset = None
 
 			if dilate_mask:
 				kernel_size = self._mask_margin.value
@@ -213,27 +228,27 @@ class ContoursImagesWindow(BaseWidget):
 				kernel = None
 
 			count = 0
-			for video, (begin, end), paths in self.paths_dialog.selected_data:
-				if len(paths)==0: continue
+			for video, (begin, end), datasets in self.datasets_dialog.selected_data:
+				if len(datasets)==0: continue
 				begin, end = int(begin), int(end)+1
 				capture.set(cv2.CAP_PROP_POS_FRAMES, begin); 
 				
-				blobs_paths = None
+				blobs_datasets = None
 
-				if export_path:
-					video_export_path = os.path.join(export_path, video.name)
-					if not os.path.exists(video_export_path): os.makedirs(video_export_path)
+				if export_dataset:
+					video_export_dataset = os.path.join(export_dataset, video.name)
+					if not os.path.exists(video_export_dataset): os.makedirs(video_export_dataset)
 				else:
-					video_export_path = None
+					video_export_dataset = None
 
-				if video_export_path:
-					paths_export_directories = []
-					for path in paths:
-						path_export_path = os.path.join(video_export_path, path.name)
-						if not os.path.exists(path_export_path): os.makedirs(path_export_path)
-						paths_export_directories.append(path_export_path)
+				if video_export_dataset:
+					datasets_export_directories = []
+					for dataset in datasets:
+						dataset_export_dataset = os.path.join(video_export_dataset, dataset.name)
+						if not os.path.exists(dataset_export_dataset): os.makedirs(dataset_export_dataset)
+						datasets_export_directories.append(dataset_export_dataset)
 				else:
-					paths_export_directories = None
+					datasets_export_directories = None
 
 
 				
@@ -245,66 +260,79 @@ class ContoursImagesWindow(BaseWidget):
 					if not res: break
 					if not self._apply.checked: break
 
-					for path_index, path in enumerate(paths):
-						contour = path.get_contour(index)
+					for dataset_index, dataset in enumerate(datasets):
+						position = dataset.get_position(index)
+						if position is None: continue
 
-						mask 	= np.zeros_like(frame)
-						cv2.drawContours( mask,  np.array( [contour] ), -1, (255,255,255), -1 )
+						mask = np.zeros_like(frame)
+						if self._mask_images.value:
+							#create the mask
+							# if the dataset is a contour
+							if isinstance(dataset, Contours):
+								contour = dataset.get_contour(index)
+								cv2.drawContours( mask, np.array( [contour] ), -1, (255,255,255), -1 )
+								if dilate_mask: mask = cv2.dilate(mask,kernel,iterations=1)
+							if self._maskradius.value:
+								cv2.circle(mask, position, self._radius.value, (255,255,255), -1)
+							frame = cv2.bitwise_and(mask, frame)
+						else:
+							mask[:,:,:] = 255
+						
+						# cut the image
+						if self._maskradius.value:
+							x, y, w, h = position[0]-self._radius.value, position[1]-self._radius.value, 2*self._radius.value, 2*self._radius.value
+						elif isinstance(dataset, Contours):
+							# find the cut ######################################
+							bounding_box = dataset.get_bounding_box(index)
+							if bounding_box is None: continue
+							x, y, w, h 	= dataset.get_bounding_box(index)
+							#####################################################
+						else:
+							x, y, w, h = position[0], position[1], 1, 1
 
-						if dilate_mask: mask = cv2.dilate(mask,kernel,iterations=1)
-
-						masked_frame = cv2.bitwise_and(mask, frame)
-
-						# find the cut ######################################
-						bounding_box = path.get_bounding_box(index)
-						if bounding_box is None: continue
-
-
-						x, y, w, h 	= path.get_bounding_box(index)
 						x, y, w, h  = x-self._exportmargin.value, y-self._exportmargin.value, w+self._exportmargin.value*2, h+self._exportmargin.value*2
 						if x<0: x=0
 						if y<0: y=0
 						if (x+w)>frame.shape[1]: w = frame.shape[1]-x
 						if (y+h)>frame.shape[0]: h = frame.shape[0]-y
-						#####################################################
 
-						cut 		 = frame[y:y+h, x:x+w]
-						masked_cut   = masked_frame[y:y+h, x:x+w]
-
+						cut = frame[y:y+h, x:x+w]
+						
 						# calculate colors average ############################
 						cut_b, cut_g, cut_r = cv2.split(cut)
-						boolean_mask = (masked_cut[:,:,0]==255)
-
-						r_avg, g_avg, b_avg = np.ma.average(np.ma.array(cut_r, mask=boolean_mask)), \
+						boolean_mask = (mask[y:y+h, x:x+w,0]!=255)
+	
+						# average the colors using a mask to remove the non contours areas
+						r_avg, g_avg, b_avg = \
+							np.ma.average(np.ma.array(cut_r, mask=boolean_mask)), \
 							np.ma.average(np.ma.array(cut_g, mask=boolean_mask)), \
 							np.ma.average(np.ma.array(cut_b, mask=boolean_mask)) 
 
-						path.set_color_avg(index, (r_avg, g_avg, b_avg) )
+						dataset.set_color_avg(index, (r_avg, g_avg, b_avg) )
 						#####################################################
 
-						if paths_export_directories:
-							image_path = os.path.join(paths_export_directories[path_index], "{0}.png".format(index) )
+						if datasets_export_directories:
+							image_dataset = os.path.join(datasets_export_directories[dataset_index], "{0}.png".format(index) )
 							
-							img_2_save = masked_cut if self._mask_images.value else cut
+							img_2_save = cut
 
-							if self._rotateimgs.value:
-								head, tail = path.get_extreme_points(index)
+							# IF the dataset is a contour
+							if isinstance(dataset, Contours) and self._rotateimgs.value:
+								head, tail = dataset.get_extreme_points(index)
 								if head and tail:
 									rotation_rad = points_angle( tail, head )
 									rotation_deg = math.degrees( rotation_rad )
 									rotation = 90-rotation_deg
 									img_2_save = rotate_image(img_2_save, rotation)
 
-							cv2.imwrite(image_path, img_2_save)
-
-					
+							cv2.imwrite(image_dataset, img_2_save)
 
 					self._progress.value = count
 					count += 1
 
 				
 
-			self._paths_panel.enabled 	= True	
+			self._datasets_panel.enabled 	= True	
 			self._exportimgs.enabled    = True
 			self.__mask_images_changed_evt()
 			self.__exportimgs_changed_evt()

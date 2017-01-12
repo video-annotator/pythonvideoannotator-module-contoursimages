@@ -1,1 +1,0 @@
-from pythonvideoannotator_module_tracking.models.objects.object2d.tracking_object2d import TrackingObject2d as Object2d

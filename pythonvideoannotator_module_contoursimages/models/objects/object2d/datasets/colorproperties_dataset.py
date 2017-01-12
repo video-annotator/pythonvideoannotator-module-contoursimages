@@ -4,31 +4,21 @@ import base64
 from PyQt4 import QtGui, QtCore
 
 
-class ControursImagesPath(object):
+class ColorPropertiesDataset(object):
 
 	def __init__(self, name=None):
-		super(ControursImagesPath, self).__init__(name)
-
+		super(ColorPropertiesDataset, self).__init__(name)
 		self._avg_colors = []
 		
 	######################################################################
 	### EVENTS ###########################################################
 	######################################################################
 
-	def name_updated(self, newname):
-		super(ControursImagesPath, self).name_updated(newname)
-		if hasattr(self,'mainwindow'): self.mainwindow.contoursimages_window.update_datasets()
-
-
-
-
 	def create_contoursimages_tree_nodes(self):
-
-		self.create_group_node('contour > color average', icon=conf.ANNOTATOR_ICON_COLORS)
-		
-		self.create_data_node('contour > color average > red', 	icon=conf.ANNOTATOR_ICON_COLOR_COMPONENT)
-		self.create_data_node('contour > color average > green',icon=conf.ANNOTATOR_ICON_COLOR_COMPONENT)
-		self.create_data_node('contour > color average > blue', icon=conf.ANNOTATOR_ICON_COLOR_COMPONENT)
+		self.create_group_node('color average', icon=conf.ANNOTATOR_ICON_COLORS)		
+		self.create_data_node('color average > red', 	icon=conf.ANNOTATOR_ICON_COLOR_COMPONENT)
+		self.create_data_node('color average > green',icon=conf.ANNOTATOR_ICON_COLOR_COMPONENT)
+		self.create_data_node('color average > blue', icon=conf.ANNOTATOR_ICON_COLOR_COMPONENT)
 		
 	######################################################################
 	### FUNCTIONS ########################################################
@@ -36,15 +26,15 @@ class ControursImagesPath(object):
 
 	################# CONTOUR #########################################################
 
-	def get_contour_coloraverage_red_value(self, index):
+	def get_coloraverage_red_value(self, index):
 		color = self.get_color_avg(index)
 		return None if color is None else color[0]
 		
-	def get_contour_coloraverage_green_value(self, index):
+	def get_coloraverage_green_value(self, index):
 		color = self.get_color_avg(index)
 		return None if color is None else color[1]
 
-	def get_contour_coloraverage_blue_value(self, index):
+	def get_coloraverage_blue_value(self, index):
 		color = self.get_color_avg(index)
 		return None if color is None else color[2]
 
@@ -58,13 +48,17 @@ class ControursImagesPath(object):
 		return self._avg_colors[index] if self._avg_colors[index] is not None else None
 
 	def set_color_avg(self, index, color):
-		if not hasattr(self, 'treenode_contour_coloraverage'): self.create_contoursimages_tree_nodes()
+		if not hasattr(self, 'treenode_coloraverage'): self.create_contoursimages_tree_nodes()
 		# add colors in case they do not exists
 		if index >= len(self._avg_colors):
 			for i in range(len(self._avg_colors), index + 1): self._avg_colors.append(None)
+
+		color = color if color is not None and color[0] is not None and color[1] is not None and color[2] is not None else None		
 		self._avg_colors[index] = color
 
-	
+	@property
+	def has_colors_avg(self):
+		return len(self._avg_colors)>0
 
 
 	######################################################################################
@@ -73,13 +67,13 @@ class ControursImagesPath(object):
 
 
 	def save(self, data, datasets_path=None):
-		data = super(ControursImagesPath, self).save(data, datasets_path)
-		dataset_path = data['path']
-		
+		data = super(ColorPropertiesDataset, self).save(data, datasets_path)
+		dataset_path = self.directory
+
 		colors_file = os.path.join(dataset_path, 'colors-average.csv')
 		with open(colors_file, 'wb') as outfile:
 			outfile.write(';'.join(['frame','red','green', 'blue'])+'\n' )
-			for index in range(len(self._path)):
+			for index in range(len(self)):
 				color = self.get_color_avg(index)
 				row = [index] + ([None, None, None] if color is None else list(color))
 				outfile.write(';'.join( map(str,row) ))
@@ -88,7 +82,7 @@ class ControursImagesPath(object):
 		return data
 
 	def load(self, data, dataset_path=None):
-		super(ControursImagesPath, self).load(data, dataset_path)
+		super(ColorPropertiesDataset, self).load(data, dataset_path)
 		colors_file = os.path.join(dataset_path, 'colors-average.csv')
 		
 		if os.path.exists(colors_file):
@@ -102,4 +96,5 @@ class ControursImagesPath(object):
 					green 	= float(csvrow[2]) if csvrow[2] is not None and csvrow[2]!='None' else None
 					blue 	= float(csvrow[3]) if csvrow[3] is not None and csvrow[3]!='None' else None
 
-					self.set_color_avg(frame, (red,green,blue))
+					color = (red,green,blue) if red is not None and blue is not None and green is not None else None
+					self.set_color_avg(frame, color)
