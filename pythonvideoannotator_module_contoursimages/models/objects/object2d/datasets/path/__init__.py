@@ -1,1 +1,0 @@
-from pythonvideoannotator_module_contoursimages.models.objects.object2d.datasets.colorproperties_dataset import ColorPropertiesDataset as Path

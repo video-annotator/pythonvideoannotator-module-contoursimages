@@ -300,6 +300,7 @@ class ContoursImagesWindow(BaseWidget):
 						
 						# calculate colors average ############################
 						cut_b, cut_g, cut_r = cv2.split(cut)
+						gray = cv2.cvtColor(cut, cv2.COLOR_BGR2GRAY)
 						boolean_mask = (mask[y:y+h, x:x+w,0]!=255)
 	
 						# average the colors using a mask to remove the non contours areas
@@ -309,6 +310,9 @@ class ContoursImagesWindow(BaseWidget):
 							np.ma.average(np.ma.array(cut_b, mask=boolean_mask)) 
 
 						dataset.set_color_avg(index, (r_avg, g_avg, b_avg) )
+
+						gray_avg = np.ma.average(np.ma.array(gray, mask=boolean_mask))
+						dataset.set_gray_avg(index, gray_avg )						
 						#####################################################
 
 						if datasets_export_directories:
