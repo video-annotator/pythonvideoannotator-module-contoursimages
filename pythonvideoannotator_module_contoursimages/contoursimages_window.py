@@ -16,7 +16,7 @@ from pythonvideoannotator_models_gui.dialogs import DatasetsDialog
 from pythonvideoannotator_models_gui.models.video.objects.object2d.datasets.contours import Contours
 from pythonvideoannotator_models_gui.models.video.objects.object2d.datasets.path import Path
 
-import json
+import simplejson as json
 
 def points_angle(p1, p2): 
 	x1, y1 = p1
@@ -88,7 +88,12 @@ class ContoursImagesWindow(BaseWidget):
 		super(ContoursImagesWindow, self).__init__('Contours images', parent_win=parent)
 		self.mainwindow = parent
 
-		self.layout().setMargin(5)
+		if conf.PYFORMS_USE_QT5:
+			self.layout().setContentsMargins(5,5,5,5)
+		else:
+			self.layout().setMargin(5)
+
+		#self.layout().setMargin(5)
 		self.setMinimumHeight(400)
 		self.setMinimumWidth(800)
 

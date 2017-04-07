@@ -1,8 +1,6 @@
 from pysettings import conf
 import cv2, numpy as np, os
 import base64
-from PyQt4 import QtGui, QtCore
-
 
 class ColorPropertiesDataset(object):
 
@@ -89,13 +87,13 @@ class ColorPropertiesDataset(object):
 
 		colors_file = os.path.join(dataset_path, 'colors-average.csv')
 		with open(colors_file, 'wb') as outfile:
-			outfile.write(';'.join(['frame','red','green', 'blue', 'gray'])+'\n' )
+			outfile.write((';'.join(['frame','red','green', 'blue', 'gray'])+'\n' ).encode( ))
 			for index in range(len(self)):
 				color = self.get_color_avg(index)
 				gray = self.get_gray_avg(index)
 				row = [index] + ([None, None, None] if color is None else list(color)) + [gray]
-				outfile.write(';'.join( map(str,row) ))
-				outfile.write('\n')
+				outfile.write((';'.join( map(str,row) )).encode( ))
+				outfile.write(b'\n')
 
 		return data
 
