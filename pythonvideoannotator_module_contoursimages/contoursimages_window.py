@@ -18,12 +18,7 @@ from pythonvideoannotator_models_gui.models.video.objects.object2d.datasets.path
 
 import simplejson as json
 
-def points_angle(p1, p2): 
-	x1, y1 = p1
-	x2, y2 = p2
-	rads = math.atan2(-(y2-y1),x2-x1)
-	rads %= 2*np.pi
-	return rads
+from pythonvideoannotator.utils.tools import points_angle
 
 def getTranslationMatrix2d(dx, dy):
 	"""
