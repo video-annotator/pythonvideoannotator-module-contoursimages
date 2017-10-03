@@ -251,10 +251,6 @@ class ContoursImagesWindow(BaseWidget):
 					datasets_export_directories = None
 
 
-				
-
-
-
 				for index in range(begin, end+1):
 					res, frame = capture.read()
 					if not res: break
@@ -290,7 +286,11 @@ class ContoursImagesWindow(BaseWidget):
 						else:
 							x, y, w, h = position[0], position[1], 1, 1
 
-						x, y, w, h  = x-self._exportmargin.value, y-self._exportmargin.value, w+self._exportmargin.value*2, h+self._exportmargin.value*2
+						margin = self._exportmargin.value
+						if isinstance(dataset, Contours) and self._rotateimgs.value:
+							margin = 2*self._exportmargin.value
+
+						x, y, w, h  = x-margin, y-margin, w+margin*2, h+margin*2
 						if x<0: x=0
 						if y<0: y=0
 						if (x+w)>frame.shape[1]: w = frame.shape[1]-x
@@ -322,14 +322,22 @@ class ContoursImagesWindow(BaseWidget):
 
 							# IF the dataset is a contour
 							if isinstance(dataset, Contours) and self._rotateimgs.value:
-								head, tail = dataset.get_extreme_points(index)
-								if head and tail:
-									rotation_rad = points_angle( tail, head )
+								angle = dataset.get_angle(index)
+								if angle:
+									rotation_rad = angle
 									rotation_deg = math.degrees( rotation_rad )
-									rotation = 90-rotation_deg
-									img_2_save = rotate_image(img_2_save, rotation)
+									rotation = rotation_deg
+									img_2_save = rotate_image(img_2_save, rotation+90)
+									# we expanded the margin for rotated images so we don't have strange forms exported.
+									# put it to use for the size
+									row, col, ch = img_2_save.shape
+									lx = round(col/2) - self._exportmargin.value
+									rx = round(col / 2) + self._exportmargin.value
+									ly = round(row / 2) - self._exportmargin.value
+									ry = round(row / 2) + self._exportmargin.value
+									imaux = img_2_save[ly:ry, lx:rx]
 
-							cv2.imwrite(image_dataset, img_2_save)
+							cv2.imwrite(image_dataset, imaux)
 
 					self._progress.value = count
 					count += 1
