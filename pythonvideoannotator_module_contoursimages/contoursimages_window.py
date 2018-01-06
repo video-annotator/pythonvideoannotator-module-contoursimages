@@ -18,7 +18,7 @@ from pythonvideoannotator_models_gui.models.video.objects.object2d.datasets.path
 
 import simplejson as json
 
-from pythonvideoannotator.utils.tools import points_angle
+from pythonvideoannotator_models.utils.tools import points_angle
 
 def getTranslationMatrix2d(dx, dy):
 	"""
@@ -97,12 +97,12 @@ class ContoursImagesWindow(BaseWidget):
 		self._apply 		= ControlButton('Apply', checkable=True)
 
 		self._exportimgs    = ControlCheckBox('Export the images')
-		self._exportmargin  = ControlSlider('Cutting margin', 0, 0, 300)
+		self._exportmargin  = ControlSlider('Cutting margin', default=0,  minimum=0, maximum=300)
 		self._mask_images   = ControlCheckBox('Use the contour as a mask')
-		self._mask_margin   = ControlSlider('Mark margin', 0, 0, 100)
+		self._mask_margin   = ControlSlider('Mark margin', default=0,  minimum=0, maximum=100)
 
 		self._maskradius	= ControlCheckBox('Use a circular mask')
-		self._radius 		= ControlSlider('Mask radius', 1, 1, 300)
+		self._radius 		= ControlSlider('Mask radius', default=1,  minimum=1, maximum=300)
 
 		self._exportdataset    = ControlDir('Export contours to dataset')
 		self._rotateimgs    = ControlCheckBox('Rotate the images vertically')
