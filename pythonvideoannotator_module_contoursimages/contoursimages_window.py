@@ -11,6 +11,7 @@ from pyforms.Controls import ControlCheckBox
 from pyforms.Controls import ControlCheckBoxList
 from pyforms.Controls import ControlEmptyWidget
 from pyforms.Controls import ControlProgress
+from pyforms.Controls import ControlToolBox
 
 from pythonvideoannotator_models_gui.dialogs import DatasetsDialog
 from pythonvideoannotator_models_gui.models.video.objects.object2d.datasets.contours import Contours
@@ -35,87 +36,70 @@ class ContoursImagesWindow(BaseWidget):
         else:
             self.layout().setMargin(5)
 
-        #self.layout().setMargin(5)
         self.setMinimumHeight(400)
         self.setMinimumWidth(800)
 
-        self._datasets_panel= ControlEmptyWidget('Paths')
+        self._contourspanel = ControlEmptyWidget('Contours datasets')
         self._progress      = ControlProgress('Progress')       
         self._apply         = ControlButton('Apply', checkable=True)
+        self._toolbox       = ControlToolBox('Toolbox')
 
-        self._exportimgs    = ControlCheckBox('Export the images')
-        self._exportmargin  = ControlSlider('Cutting margin', default=0,  minimum=0, maximum=300)
-        self._mask_images   = ControlCheckBox('Use the contour as a mask')
-        self._mask_margin   = ControlSlider('Mark margin', default=0,  minimum=0, maximum=100)
-
-        #### draw events ###############################################
-        self._export_evts   = ControlCheckBox('Export the events', changed_event=self.__export_evts_changed_evt)
-        self._events_lst    = ControlCheckBoxList('Events', enabled=False)
-        self._reloadevts_btn= ControlButton('Reload events', enabled=False, default=self.__reload_events_btn_evt)
+        #### mask ######################################################
+        self._usemaskimg       = ControlCheckBox('Apply a mask to the image')
+        self._usemaskdilate    = ControlCheckBox('Dilate the mask and apply it to the image')
+        self._maskdilatesize   = ControlSlider('Dilate size', default=0, minimum=0, maximum=100)
+        self._usemaskellipse   = ControlCheckBox('Apply the min. ellipse as a mask to the image')
+        self._usemaskcircular  = ControlCheckBox('Apply a circular mask to the image')
+        self._maskcircularsize = ControlSlider('Circular radius', default=0, minimum=0, maximum=100)
+        self._usemaskrect      = ControlCheckBox('Apply the min. rect as a mask to the image')
         ################################################################
 
-        self._maskradius    = ControlCheckBox('Use a circular mask')
-        self._radius        = ControlSlider('Mask radius', default=1,  minimum=1, maximum=300)
+        #### margin ####################################################
+        self._margin = ControlSlider('Margin size', default=0, minimum=0, maximum=100)
+        ################################################################
+
+        #### imagesize #################################################
+        self._imagesize = ControlSlider('Image size', default=10, minimum=10, maximum=400)
+        ################################################################
+
+        #### use stretch ###############################################
+        self._usestretch = ControlCheckBox('Stretch image')
+        ################################################################
+
+        #### filter per events #########################################
+        self._eventslst  = ControlCheckBoxList('Events', enabled=False)
+        self._reloadevts = ControlButton('Reload events', enabled=False, default=self.__reload_events_btn_evt)
+        ################################################################
 
         self._exportdataset = ControlDir('Export contours to dataset')
         self._rotateimgs    = ControlCheckBox('Rotate the images vertically')
-        self._useother_orient = ControlCheckBox('Use the orientation from other contours', enabled=False)
+        self._useotherorient = ControlCheckBox('Use the orientation from other contours', enabled=False)
 
-        self._orient_datasets_panel = ControlEmptyWidget('Datasets for the orientation', enabled=False)
+        self._orient_datasetspanel = ControlEmptyWidget('Datasets for the orientation', enabled=False)
         
         self._formset = [
-            'info: This module add to the contour properties extrated from its image',
-            '_datasets_panel',
-            '=',
-            ' ',
-            'Export the contours images',
-            '_exportimgs',
+            '_toolbox',
             '_exportdataset',
-            '_exportmargin', 
-            ('_mask_images','_mask_margin'),
-            ('_rotateimgs','_useother_orient'),
-            '_orient_datasets_panel',
-            ('_maskradius','_radius'),
-            '_export_evts',
-            ('_events_lst', '_reloadevts_btn'),
-            ' ',
             '_apply',
             '_progress'
-        ]
-
-        self.load_order = [
-            '_datasets_panel', '_exportimgs',
-            '_exportdataset',
-            '_exportmargin', 
-            '_mask_images','_mask_margin',
-            '_rotateimgs','_useother_orient',
-            '_orient_datasets_panel',
-            '_maskradius','_radius', '_export_evts' , '_events_lst'
         ]
 
         #datasets painel
         self.datasets_dialog = DatasetsDialog(self)
         self.datasets_dialog.datasets_filter = lambda x: isinstance(x, (Contours,Path) )
-        self._datasets_panel.value = self.datasets_dialog
-        
+        self._contourspanel.value = self.datasets_dialog
 
         self.orientdatasets_dialog = DatasetsDialog(self)
         self.orientdatasets_dialog.datasets_filter = lambda x: isinstance(x, Contours )
         self.orientdatasets_dialog.interval_visible = False
-        self._orient_datasets_panel.value = self.orientdatasets_dialog
+        self._orient_datasetspanel.value = self.orientdatasets_dialog
 
 
         self._apply.value       = self.__apply_event
         self._apply.icon        = conf.ANNOTATOR_ICON_PATH
 
-        self._exportimgs.changed_event  = self.__exportimgs_changed_evt
-        self._exportimgs.value          = False
-        self._mask_images.changed_event = self.__mask_images_changed_evt
-        self._mask_images.value         = False
-        self._maskradius.changed_event  = self.__maskradius_changed_evt
-        self._maskradius.value          = False
         self._rotateimgs.changed_event = self.__rotate_images_changed_evt
-        self._useother_orient.changed_event = self.__useother_orient_changed_evt
+        self._useotherorient.changed_event = self.__useotherorient_changed_evt
 
         self._exportdataset.value = os.getcwd()
 
@@ -123,17 +107,43 @@ class ContoursImagesWindow(BaseWidget):
 
         self.__reload_events_btn_evt()
 
+
+        self._toolbox.value = [
+            ('Extract from contours',(
+                self.datasets_dialog,
+            )),
+            ('Mask',(
+                self._usemaskimg,
+                (self._usemaskdilate,self._maskdilatesize),
+                (self._usemaskcircular,self._maskcircularsize),
+                (self._usemaskellipse,self._usemaskrect),
+            )),
+            ('Margin, image size & stretch image',(
+                self._margin, self._imagesize,
+                self._usestretch,
+            )),
+            ('Rotate images',(
+                self._useotherorient,
+                self._orient_datasetspanel,
+                self._rotateimgs,
+            )),
+            ('Export images per events',(
+                self._reloadevts,
+                self._eventslst,
+            )),
+        ]
+
     ###########################################################################
     ### EVENTS ################################################################
     ###########################################################################
 
     def __export_evts_changed_evt(self):
         if self._export_evts.value:
-            self._events_lst.enabled = True
-            self._reloadevts_btn.enabled = True
+            self._eventslst.enabled = True
+            self._reloadevts .enabled = True
         else:
-            self._events_lst.enabled = False
-            self._reloadevts_btn.enabled = False
+            self._eventslst.enabled = False
+            self._reloadevts .enabled = False
 
 
     def __reload_events_btn_evt(self):
@@ -150,44 +160,20 @@ class ContoursImagesWindow(BaseWidget):
 
         events = sorted(events.keys())
 
-        loaded_events = dict(self._events_lst.items)
-        self._events_lst.value = [(e, loaded_events.get(e, False)) for e in events]
+        loaded_events = dict(self._eventslst.items)
+        self._eventslst.value = [(e, loaded_events.get(e, False)) for e in events]
 
     def __rotate_images_changed_evt(self):
-        self._useother_orient.enabled = self._rotateimgs.value
+        self._useotherorient.enabled = self._rotateimgs.value
 
         if not self._rotateimgs.value:
-            self._useother_orient.value = False
-            self._orient_datasets_panel.enabled = False
+            self._useotherorient.value = False
+            self._orient_datasetspanel.enabled = False
 
-    def __useother_orient_changed_evt(self):
-        self._orient_datasets_panel.enabled = self._useother_orient.value
+    def __useotherorient_changed_evt(self):
+        self._orient_datasetspanel.enabled = self._useotherorient.value
 
-    def __exportimgs_changed_evt(self):
-        if self._exportimgs.value:
-            self._exportmargin.enabled  = True
-            self._mask_images.enabled   = True
-            self._exportdataset.enabled = True
-            self._rotateimgs.enabled    = True
-        else:
-            self._exportmargin.enabled  = False
-            self._mask_images.enabled   = False
-            self._exportdataset.enabled = False
-            self._rotateimgs.enabled    = False
-
-
-    def __mask_images_changed_evt(self):
-        if self._mask_images.value:
-            self._mask_margin.enabled   = True
-        else:
-            self._mask_margin.enabled   = False
-
-    def __maskradius_changed_evt(self):
-        if self._maskradius.value:
-            self._radius.enabled    = True
-        else:
-            self._radius.enabled    = False
-
+  
     ###########################################################################
     ### PROPERTIES ############################################################
     ###########################################################################
@@ -204,16 +190,14 @@ class ContoursImagesWindow(BaseWidget):
         if self._apply.checked:
             dilate_mask = self._mask_margin.enabled and self._mask_margin.value>0
 
-            self._datasets_panel.enabled= False         
-            self._exportimgs.enabled    = False
             self._exportmargin.enabled  = False
             self._mask_images.enabled   = False
             self._exportdataset.enabled = False
             self._rotateimgs.enabled    = False
             self._mask_margin.enabled   = False
             self._mask_margin.enabled   = False
-            self._useother_orient.enabled = False
-            self._orient_datasets_panel.enabled = False
+            self._useotherorient.enabled = False
+            self._orient_datasetspanel.enabled = False
             self._apply.label           = 'Cancel'
 
             # setup the progress bar
@@ -230,25 +214,17 @@ class ContoursImagesWindow(BaseWidget):
 
             ######################################################################
             # create a directory to export the images if the option was selected
-            if self._exportimgs.value:
-                export_dataset = os.path.join(self._exportdataset.value, 'contours-images')
-                if not os.path.exists(export_dataset): os.makedirs(export_dataset)
-            else:
-                export_dataset = None
+            export_dataset = os.path.join(self._exportdataset.value, 'contours-images')
+            if not os.path.exists(export_dataset): os.makedirs(export_dataset)
             ######################################################################
 
-            if dilate_mask:
-                kernel_size = self._mask_margin.value
-                if (kernel_size % 2)==0: kernel_size+=1
-                kernel = np.ones((kernel_size,kernel_size),np.uint8)
-            else:
-                kernel = None
+         
 
             # If the option to use other datasets for the orientation was selected, create a dict variable 
             # with the association between each contour to export and contour to use the orientation
             # the association is used using the object.
             # For each contours to export of an object there should be a contour with orientation from the same object
-            if self._useother_orient.value:
+            if self._useotherorient.value:
                 orient_dict = {}
                 for _, _, datasets in self.orientdatasets_dialog.selected_data:
                     orient_dict[datasets[0].object2d] = datasets[0]
@@ -278,7 +254,7 @@ class ContoursImagesWindow(BaseWidget):
                         datasets_export_directories.append(dataset_export_dataset)
 
                         if self._export_evts.value:
-                            for event_name in self._events_lst.value:
+                            for event_name in self._eventslst.value:
                                 path = os.path.join(dataset_export_dataset, event_name)
                                 if not os.path.exists(path): os.makedirs(path)
                 else:
@@ -286,7 +262,7 @@ class ContoursImagesWindow(BaseWidget):
 
 
                 ### calculate the video cuts #############################
-                selected_events = self._events_lst.value
+                selected_events = self._eventslst.value
                 videocuts   = []
                 if self._export_evts.value:
                     # use the events to cut the video
@@ -319,115 +295,18 @@ class ContoursImagesWindow(BaseWidget):
                         if not self._apply.checked: break
 
                         for dataset_index, dataset in enumerate(datasets):
-                            position = dataset.get_position(index)
-                            if position is None: continue
-
-                            # Mask the image if the option was selected #####################
-                            mask = np.zeros_like(frame)
-                            if self._mask_images.value:
-                                #create the mask
-                                # if the dataset is a contour
-                                if isinstance(dataset, Contours):
-                                    contour = dataset.get_contour(index)
-                                    cv2.drawContours( mask, np.array( [contour] ), -1, (255,255,255), -1 )
-                                    if dilate_mask: mask = cv2.dilate(mask,kernel,iterations=1)
-                                if self._maskradius.value:
-                                    cv2.circle(mask, position, self._radius.value, (255,255,255), -1)
-                                frame = cv2.bitwise_and(mask, frame)
-                            else:
-                                mask[:,:,:] = 255
-                            #################################################################
-                            
-                            # cut the image
-                            if self._maskradius.value:
-                                x, y, w, h = position[0]-self._radius.value, position[1]-self._radius.value, 2*self._radius.value, 2*self._radius.value
-                            elif isinstance(dataset, Contours):
-                                # find the cut ######################################
-                                bounding_box = dataset.get_bounding_box(index)
-                                if bounding_box is None: continue
-                                x, y, w, h  = dataset.get_bounding_box(index)
-                                #####################################################
-                            else:
-                                x, y, w, h = position[0], position[1], 1, 1
-
-                            margin = self._exportmargin.value
-                            if isinstance(dataset, Contours) and self._rotateimgs.value:
-                                margin = 2*self._exportmargin.value
-
-                            x, y, w, h  = x-margin, y-margin, w+margin*2, h+margin*2
-                            if x<0: x=0
-                            if y<0: y=0
-                            if (x+w)>frame.shape[1]: w = frame.shape[1]-x
-                            if (y+h)>frame.shape[0]: h = frame.shape[0]-y
-
-                            cut = frame[y:y+h, x:x+w]
-                            
-                            # calculate colors average ############################
-                            cut_b, cut_g, cut_r = cv2.split(cut)
-                            gray = cv2.cvtColor(cut, cv2.COLOR_BGR2GRAY)
-                            boolean_mask = (mask[y:y+h, x:x+w,0]!=255)
-        
-                            # average the colors using a mask to remove the non contours areas
-                            r_avg, g_avg, b_avg = \
-                                np.ma.average(np.ma.array(cut_r, mask=boolean_mask)), \
-                                np.ma.average(np.ma.array(cut_g, mask=boolean_mask)), \
-                                np.ma.average(np.ma.array(cut_b, mask=boolean_mask)) 
-
-                            dataset.set_color_avg(index, (r_avg, g_avg, b_avg) )
-
-                            gray_avg = np.ma.average(np.ma.array(gray, mask=boolean_mask))
-                            dataset.set_gray_avg(index, gray_avg )                      
-                            #####################################################
-
-                            if datasets_export_directories:
-                                image_dataset = os.path.join(datasets_export_directories[dataset_index], event_name, "{0}.png".format(index) )
-                                
-                                img_2_save = cut
-
-                                # IF the dataset is a contour
-                                if isinstance(dataset, Contours) and self._rotateimgs.value:
-                                    
-                                    # check which oriention to use
-                                    if orient_dict is None:
-                                        angle = dataset.get_angle(index)                            
-                                    else:
-                                        d = orient_dict.get(dataset.object2d, None)
-                                        if d is None:
-                                            # if no orientation was defined to the object, fallback to the tradictional method
-                                            angle = dataset.get_angle(index)
-                                        else:
-                                            angle = d.get_angle(index)
-
-                                    if angle:
-                                        rotation_rad = angle
-                                        rotation_deg = math.degrees( rotation_rad )
-                                        rotation = rotation_deg
-                                        img_2_save = rotate_image(img_2_save, rotation+90)
-                                        # we expanded the margin for rotated images so we don't have strange forms exported.
-                                        # put it to use for the size
-                                        row, col, ch = img_2_save.shape
-                                        lx = self._exportmargin.value
-                                        rx = col - self._exportmargin.value
-                                        ly = self._exportmargin.value
-                                        ry = row - self._exportmargin.value
-                                        imaux = img_2_save[ly:ry, lx:rx]
-
-                                cv2.imwrite(image_dataset, imaux)
+                            pass
 
                         self._progress.value = count
                         count += 1
 
                 
 
-            self._datasets_panel.enabled = True 
-            self._exportimgs.enabled     = True
-            self.__mask_images_changed_evt()
-            self.__exportimgs_changed_evt()
             self._apply.label            = 'Apply'
             self._apply.checked          = False
 
-            self._useother_orient.enabled = True
-            self._orient_datasets_panel.enabled = True
+            self._useotherorient.enabled = True
+            self._orient_datasetspanel.enabled = True
             self._progress.hide()
 
 
