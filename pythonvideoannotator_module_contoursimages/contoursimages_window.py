@@ -11,6 +11,8 @@ from pyforms.controls import ControlCheckBox
 from pyforms.controls import ControlCheckBoxList
 from pyforms.controls import ControlEmptyWidget
 from pyforms.controls import ControlProgress
+from pyforms.controls import ControlToolBox
+from pyforms.controls import ControlBoundingSlider
 
 from pythonvideoannotator_models_gui.dialogs import DatasetsDialog
 from pythonvideoannotator_models_gui.models.video.objects.object2d.datasets.contours import Contours
