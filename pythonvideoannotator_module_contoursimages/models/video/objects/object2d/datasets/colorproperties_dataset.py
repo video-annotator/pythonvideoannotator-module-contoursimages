@@ -1,4 +1,4 @@
-from pyforms import conf
+from confapp import conf
 import cv2, numpy as np, os
 import base64
 
