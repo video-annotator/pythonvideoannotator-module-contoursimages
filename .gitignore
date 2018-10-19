@@ -1,1 +1,13 @@
 *.pyc
+Python_video_annotator_module_contours_images\.egg-info/
+
+build/
+develop-eggs/
+dist/
+eggs/
+.eggs/
+sdist/
+var/
+wheels/
+*.egg-info/
+*.egg
