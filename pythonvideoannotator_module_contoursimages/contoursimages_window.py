@@ -29,7 +29,7 @@ from pythonvideoannotator_models.utils.tools import points_angle, rotate_image
 class ContoursImagesWindow(BaseWidget):
 
     def __init__(self, parent=None):
-        super(ContoursImagesWindow, self).__init__('Contours images', parent_win=parent)
+        super(ContoursImagesWindow, self).__init__('Contour images', parent_win=parent)
         self.mainwindow = parent
 
         self.set_margin(5)
@@ -42,7 +42,7 @@ class ContoursImagesWindow(BaseWidget):
         self._progress      = ControlProgress('Progress', visible=False)       
         self._apply         = ControlButton('Apply', checkable=True)
         self._toolbox       = ControlToolBox('Toolbox')
-        self._exportdir     = ControlDir('Export contours to dataset', default='images-from-contours')
+        self._exportdir     = ControlDir('Export images to folder', default='images-from-contour')
         
 
         #### mask ######################################################
@@ -80,11 +80,11 @@ class ContoursImagesWindow(BaseWidget):
         ################################################################
 
         #### rotation ##################################################
-        self._userotup          = ControlCheckBox('Turn the contours always up')
-        self._userotdown        = ControlCheckBox('Turn the contours always down')
+        self._userotup          = ControlCheckBox('Turn the contour always up')
+        self._userotdown        = ControlCheckBox('Turn the contour always down')
         self._usefixedangle     = ControlCheckBox('Use a fixed orientation')
         self._fixedangle        = ControlSlider('Rotate the images using a fixed angle', enabled=True, default=0, minimum=0, maximum=360)
-        self._usedatasetangle   = ControlCheckBox('Use the orientation of other contours')
+        self._usedatasetangle   = ControlCheckBox('Use the orientation of other contour')
         self._datasetanglepanel = ControlEmptyWidget('Datasets for the orientation', enabled=True)
         ################################################################
 
@@ -139,7 +139,7 @@ class ContoursImagesWindow(BaseWidget):
                 (self._usemaskcircular,self._maskcircularsize),
                 (self._usemaskellipse,self._usemaskrect),
             )),
-            ('Margin, image size & stretch image',(
+            ('Margin, image size and stretch image',(
                 self._usestretch,
                 self._margin, 
                 self._imagesize,
@@ -296,7 +296,7 @@ class ContoursImagesWindow(BaseWidget):
             ######################################################################
             # create a directory to export the images if the option was selected
             EXPORT_DIRECTORY = self._exportdir.value
-            if len(EXPORT_DIRECTORY)==0: EXPORT_DIRECTORY = 'contours-images'
+            if len(EXPORT_DIRECTORY)==0: EXPORT_DIRECTORY = 'contour-images'
             if not os.path.exists(EXPORT_DIRECTORY): os.makedirs(EXPORT_DIRECTORY)
             ######################################################################
 
@@ -355,7 +355,7 @@ class ContoursImagesWindow(BaseWidget):
                 capture.set(cv2.CAP_PROP_POS_FRAMES, begin); 
                 
                 eventscuts = self.__get_events_cuts(begin, end)
-                exportmap  = self.__get_export_map(begin, end, eventscuts)    
+                exportmap  = self.__get_export_map(begin, end, eventscuts) 
 
                 ######################################################################
                 # create the directories to export the images per video and events
@@ -375,9 +375,14 @@ class ContoursImagesWindow(BaseWidget):
 
                     res, frame = capture.read()
                     #exit in the case the frame was not read.
-                    if not res: return False, None
+                    if not res:
+                        self._apply.label       = 'Apply'
+                        self._toolbox.enabled   = True
+                        self._exportdir.enabled = True
+                        self._apply.checked     = False
+                        self._progress.hide()       
+                        return False, None
 
-                    
                     for foldername in exportmap[i]:
                         if not self._apply.checked: break
                        
@@ -413,6 +418,7 @@ class ContoursImagesWindow(BaseWidget):
                                     img = img[y:yy, x:xx]
 
                                 cv2.imwrite(imgpath, img)
+
                     self._progress.value += 1
                 
                 
@@ -420,6 +426,7 @@ class ContoursImagesWindow(BaseWidget):
             self._apply.label       = 'Apply'
             self._toolbox.enabled   = True
             self._exportdir.enabled = True
+            self._apply.checked     = False
             self._progress.hide()
 
 

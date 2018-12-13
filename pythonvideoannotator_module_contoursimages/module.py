@@ -16,7 +16,7 @@ class Module(object):
 
 
         self.mainmenu[1]['Modules'].append(
-            {"Extract the contours' images": self.contoursimages_window.show, 'icon':conf.ANNOTATOR_ICON_IMAGE },           
+            {"Extract the contour's images": self.contoursimages_window.show, 'icon':conf.ANNOTATOR_ICON_IMAGE },           
         )
 
 
