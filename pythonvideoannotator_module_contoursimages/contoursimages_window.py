@@ -278,6 +278,15 @@ class ContoursImagesWindow(BaseWidget):
     def __apply_event(self):
 
         if self._apply.checked:
+
+            if self._usecut.value and self._imagesize.value>0:
+                x, xx = self._cutx.value
+                y, yy = self._cuty.value
+                if int(yy)==int(y) or int(xx)==int(x):
+                    self.message("The second cut value has to be bigger than the first", "Error", "error")
+                    self._apply.checked=False
+                    return
+
             self._toolbox.enabled   = False
             self._exportdir.enabled = False
             self._progress.value    = 0
@@ -412,10 +421,10 @@ class ContoursImagesWindow(BaseWidget):
                                 imgpath = os.path.join(folder, '{0}.png'.format(i) )
                                 if not os.path.exists(folder): os.makedirs(folder)
 
-                                if self._usecut.value:
+                                if self._usecut.value and self._imagesize.value>0:
                                     x, xx = self._cutx.value
                                     y, yy = self._cuty.value
-                                    img = img[y:yy, x:xx]
+                                    img = img[int(y):int(yy), int(x):int(xx)]
 
                                 cv2.imwrite(imgpath, img)
 
