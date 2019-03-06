@@ -191,7 +191,7 @@ class ContoursImagesWindow(BaseWidget):
 
         events   = {}
         for row in rows:
-            for event in row.periods:
+            for event in row.events:
                 events[event.title] = True
 
         events = sorted(events.keys())
@@ -223,7 +223,7 @@ class ContoursImagesWindow(BaseWidget):
             timeline    = self.mainwindow.timeline
 
             for row in timeline.rows:
-                for event in row.periods:
+                for event in row.events:
                     if event.end<=begin: continue
                     if event.begin>=end: continue
                     if event.title not in selected_events: continue
