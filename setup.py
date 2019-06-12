@@ -9,7 +9,7 @@ with open('README.md', 'r') as fd:
 
 setup(
 	name='Python video annotator - module - contours images',
-	version="0.3",
+	version="0.4",
 	description="""""",
 	author=['Ricardo Ribeiro'],
 	author_email='ricardojvr@gmail.com',
